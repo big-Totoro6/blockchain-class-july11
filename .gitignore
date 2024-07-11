@@ -1,15 +1,65 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+# 忽略所有的 .a 文件
+*.a
 
-# Test binary, built with `go test -c`
-*.test
+# 但是包含 lib.a, 即使之前声明过忽略所有 .a 文件
+!lib.a
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+# 忽略所有 .o 和 .obj 文件
+*.o
+*.obj
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
+# 忽略所有的 .log 文件
+*.log
+
+# 忽略所有的 .zip 文件
+*.zip
+
+# 忽略 node_modules 目录
+node_modules/
+
+# 忽略编译生成的文件
+bin/
+out/
+
+# 忽略配置文件
+*.config
+
+# 忽略临时文件或备份文件
+*.tmp
+*.bak
+
+# 忽略 .DS_Store 文件（Mac OS 系统）
+.DS_Store
+
+# 忽略 .vscode 目录（Visual Studio Code 配置目录）
+.vscode/
+
+# 忽略 .idea 目录（IntelliJ IDEA 配置目录）
+.idea/
+
+# 忽略 .env 环境变量文件
+.env
+
+# 忽略本地的配置文件
+*.local
+
+# 忽略缓存或日志文件
+*.cache
+*.log
+
+# 忽略编辑器自动生成的文件
+*.swp
+
+# 忽略私密或敏感信息文件
+*.key
+*.pem
+
+# 忽略与操作系统相关的文件
+Thumbs.db
+ehthumbs.db
+
+# Ignore XML files
+*.xml
+
+# Ignore IML files (IntelliJ IDEA module files)
+*.iml
