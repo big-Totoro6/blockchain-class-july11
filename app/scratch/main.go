@@ -63,16 +63,18 @@ func run() error {
 
 	// =============================================================================
 	//way 2 以太坊自带的哈希函数
-	v := crypto.Keccak256(data)
+	//给数据盖章 加自己的身份标识
+	// This stamp is used so signatures we produce when signing data
+	// are always unique to the Ardan blockchain.
+	stamp := []byte(fmt.Sprintf("\x19Ardan Signed Message:\n%d", len(data)))
+	v := crypto.Keccak256(stamp, data)
 	sig, err := crypto.Sign(v, privateKey)
 	if err != nil {
 		return fmt.Errorf("unable to Sign: %w", err)
 	}
 
 	// =============================================================================
-	//然后打印一下看看签名
-	fmt.Println(string(sig))
-	//事实上这很难看懂 需要变成16进制的
+	//需要变成16进制的
 	fmt.Println(string(hexutil.Encode(sig)))
 
 	//解析公钥
