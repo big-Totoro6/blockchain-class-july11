@@ -18,15 +18,15 @@ type Tx struct {
 
 // 让我们展开一下，假设 run 函数可能包含了一系列的操作或者逻辑，如果其中的任何一步出现问题，就会返回一个非 nil 的错误。在这种情况下，main 函数负责捕获这个错误并输出到日志，然后退出程序，避免继续执行可能已经无法继续的任务。
 func main() {
-	//if err := run(); err != nil {
-	//	//日志输出: 使用 log.Fatalln(err) 来打印错误信息，它会将错误信息输出到标准错误并调用 os.Exit(1) 终止程序。这种方法适合于简单的命令行应用或者服务启动脚本。
-	//	log.Fatalln(err)
-	//}
-
-	if err := publicKeyJudge(); err != nil {
+	if err := run(); err != nil {
 		//日志输出: 使用 log.Fatalln(err) 来打印错误信息，它会将错误信息输出到标准错误并调用 os.Exit(1) 终止程序。这种方法适合于简单的命令行应用或者服务启动脚本。
 		log.Fatalln(err)
 	}
+
+	//if err := publicKeyJudge(); err != nil {
+	//	//日志输出: 使用 log.Fatalln(err) 来打印错误信息，它会将错误信息输出到标准错误并调用 os.Exit(1) 终止程序。这种方法适合于简单的命令行应用或者服务启动脚本。
+	//	log.Fatalln(err)
+	//}
 }
 
 func run() error {
@@ -74,6 +74,14 @@ func run() error {
 	fmt.Println(string(sig))
 	//事实上这很难看懂 需要变成16进制的
 	fmt.Println(string(hexutil.Encode(sig)))
+
+	//解析公钥
+	publicKey, err := crypto.SigToPub(v, sig)
+	if err != nil {
+		return fmt.Errorf("unable to pub: %w", err)
+	}
+	//使用crypto.PubkeyToAddress将推导出的公钥转换为以太坊地址，并打印出来。
+	fmt.Println(crypto.PubkeyToAddress(*publicKey).String())
 
 	return nil
 
