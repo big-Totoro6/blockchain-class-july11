@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"log"
+	"math/big"
+	"strings"
 )
 
 // Tx is the transactional information between two parties. 我们想查看交易时候发生的，我们给出的签名是啥样，计算出的公钥长啥样
@@ -85,6 +88,20 @@ func run() error {
 	//使用crypto.PubkeyToAddress将推导出的公钥转换为以太坊地址，并打印出来。
 	fmt.Println(crypto.PubkeyToAddress(*publicKey).String())
 
+	//打印一下被转换成VRS的签名
+	//vv, r, s, err := ToVRSFromHexSig(string(hexutil.Encode(sig))) //传入的值0xd7f668a655b0d0e53f39ba1774fa748ea8458c544ee9df685f557f2d03a19dcb2d57caf751363dc5ab7ad37ec4b2645330db601aade65aec6b0787296362fcbc00
+	vv, r, s, err := ToVRSFromHexSig(hex.EncodeToString(sig)) //      传入的值  d7f668a655b0d0e53f39ba1774fa748ea8458c544ee9df685f557f2d03a19dcb2d57caf751363dc5ab7ad37ec4b2645330db601aade65aec6b0787296362fcbc00
+
+	if err != nil {
+		fmt.Println("Error:", err)
+		return nil
+	}
+
+	// Print v, r, s (just for demonstration)
+	fmt.Println("v:", vv.String())
+	fmt.Println("r:", r.String())
+	fmt.Println("s:", s.String())
+
 	return nil
 
 }
@@ -151,4 +168,29 @@ func publicKeyJudge() error {
 	}
 
 	return nil
+}
+
+// 写一个 把正常的16进制签名转换成符合以太坊的签名的method
+func ToVRSFromHexSig(sigStr string) (v, r, s *big.Int, err error) {
+	// 首先解码十六进制签名
+	// 去除开头的 "0x" 前缀（如果有的话）
+	hexStr := strings.TrimPrefix(sigStr, "0x")
+	sig, err := hex.DecodeString(hexStr)
+	//sig, err := hex.DecodeString(sigStr[2:]) // 如果用这个的话，如果我传入的是没有带0x的16进制数 他就会去除掉有效数据了
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	// 确保解码后的签名长度为 65 字节
+	if len(sig) != 65 {
+		return nil, nil, nil, fmt.Errorf("签名长度错误: %d", len(sig))
+	}
+
+	// 提取 r 和 s 部分
+	r = new(big.Int).SetBytes(sig[0:32])
+	s = new(big.Int).SetBytes(sig[32:64])
+
+	// 提取 v 部分（最后一个字节）
+	v = new(big.Int).SetUint64(uint64(sig[64]))
+
+	return v, r, s, nil
 }
