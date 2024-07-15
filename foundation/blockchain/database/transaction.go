@@ -2,6 +2,7 @@ package database
 
 import (
 	"crypto/ecdsa"
+	"errors"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/signature"
 	"math/big"
 )
@@ -25,6 +26,28 @@ type SignedTx struct {
 	V *big.Int `json:"v"` // Ethereum: Recovery identifier, either 29 or 30 with ardanID.
 	R *big.Int `json:"r"` // Ethereum: First coordinate of the ECDSA signature.
 	S *big.Int `json:"s"` // Ethereum: Second coordinate of the ECDSA signature.
+}
+
+// NewTx constructs a new transaction.
+func NewTx(chainID uint16, nonce uint64, fromID AccountID, toID AccountID, value uint64, tip uint64, data []byte) (Tx, error) {
+	if !fromID.IsAccountID() {
+		return Tx{}, errors.New("from account is not properly formatted")
+	}
+	if !toID.IsAccountID() {
+		return Tx{}, errors.New("to account is not properly formatted")
+	}
+
+	tx := Tx{
+		ChainID: chainID,
+		Nonce:   nonce,
+		FromID:  fromID,
+		ToID:    toID,
+		Value:   value,
+		Tip:     tip,
+		Data:    data,
+	}
+
+	return tx, nil
 }
 
 // Sign 现在我们需要一个方法 去把交易类型转化为 加签过的交易类型 （加签要给数据加入自己的stamp并且签名格式与RSV一致）
