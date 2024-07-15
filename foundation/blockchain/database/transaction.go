@@ -3,9 +3,15 @@ package database
 import (
 	"crypto/ecdsa"
 	"errors"
+	"fmt"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/signature"
 	"math/big"
 )
+
+// ardanID is an arbitrary number for signing messages. This will make it
+// clear that the signature comes from the Ardan blockchain.
+// Ethereum and Bitcoin do this as well, but they use the value of 27.
+const ardanID = 29
 
 // Tx is the transactional information between two parties.
 type Tx struct {
@@ -71,4 +77,41 @@ func (tx Tx) Sign(privateKey *ecdsa.PrivateKey) (SignedTx, error) {
 	}
 
 	return signedTx, nil
+}
+
+// 我需要一个验证的方法 很重要
+func (tx SignedTx) Validate(chainID uint16) error {
+	//首先就是判断chainid 这个是写在配置文件里面的 genesis里面的
+	if tx.ChainID != chainID {
+		return fmt.Errorf("invalid chain id, got[%d] exp[%d]", tx.ChainID, chainID)
+	}
+
+	//然后校验发送人 接收者
+	if !tx.FromID.IsAccountID() {
+		return errors.New("from account is not properly formatted")
+	}
+
+	if !tx.ToID.IsAccountID() {
+		return errors.New("to account is not properly formatted")
+	}
+
+	//不能自己发给自己
+	if tx.FromID == tx.ToID {
+		return fmt.Errorf("transaction invalid, sending money to yourself, from %s, to %s", tx.FromID, tx.ToID)
+	}
+	//校验签名
+	if err := signature.VerifySignature(tx.V, tx.R, tx.S); err != nil {
+		return err
+	}
+
+	// 6. Extract address from signature and verify it matches fromID
+	address, err := signature.FromAddress(tx.Tx, tx.V, tx.R, tx.S)
+	if err != nil {
+		return err
+	}
+	//校验地址 看你传过来的以太坊地址与我算出来的是否一致
+	if address != string(tx.FromID) {
+		return errors.New("signature address doesn't match from address")
+	}
+	return nil
 }
