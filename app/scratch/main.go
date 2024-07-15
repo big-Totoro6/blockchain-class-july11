@@ -12,6 +12,16 @@ import (
 	"strings"
 )
 
+// ZeroHash represents a hash code of zeros.
+const ZeroHash string = "0x0000000000000000000000000000000000000000000000000000000000000000"
+
+// ardanID is an arbitrary number for signing messages. This will make it
+// clear that the signature comes from the Ardan blockchain.
+// Ethereum and Bitcoin do this as well, but they use the value of 27.
+const ardanID = 29
+
+// =============================================================================
+
 // Tx is the transactional information between two parties. 我们想查看交易时候发生的，我们给出的签名是啥样，计算出的公钥长啥样
 type Tx struct {
 	FromID string `json:"from"`  // Ethereum: Account sending the transaction. Will be checked against signature.
@@ -34,9 +44,9 @@ func main() {
 
 func run() error {
 	tx := Tx{
-		FromID: "Bill",  //交易发起人
-		ToID:   "Aaron", //交易的对方
-		Value:  1000,    //交易的金额
+		FromID: "0xF01813E4B85e178A83e29B8E7bF26BD830a25f32", //交易发起人
+		ToID:   "Aaron",                                      //交易的对方
+		Value:  1000,                                         //交易的金额
 	}
 	//我们需要一个私钥 路径是我们的账户的路径
 	path := "zblock/accounts/kennedy.ecdsa"
@@ -193,4 +203,31 @@ func ToVRSFromHexSig(sigStr string) (v, r, s *big.Int, err error) {
 	v = new(big.Int).SetUint64(uint64(sig[64]))
 
 	return v, r, s, nil
+}
+
+// ToSignatureBytes converts the r, s, v values into a slice of bytes
+// with the removal of the ardanID.
+func ToSignatureBytes(v, r, s *big.Int) []byte {
+	sig := make([]byte, crypto.SignatureLength)
+
+	rBytes := make([]byte, 32)
+	r.FillBytes(rBytes)
+	copy(sig, rBytes)
+
+	sBytes := make([]byte, 32)
+	s.FillBytes(sBytes)
+	copy(sig[32:], sBytes)
+
+	sig[64] = byte(v.Uint64() - ardanID)
+
+	return sig
+}
+
+// ToSignatureBytesWithArdanID converts the r, s, v values into a slice of bytes
+// keeping the Ardan id.
+func ToSignatureBytesWithArdanID(v, r, s *big.Int) []byte {
+	sig := ToSignatureBytes(v, r, s)
+	sig[64] = byte(v.Uint64())
+
+	return sig
 }
