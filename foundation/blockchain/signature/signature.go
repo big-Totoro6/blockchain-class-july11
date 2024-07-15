@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
 )
@@ -91,6 +92,8 @@ func VerifySignature(v, r, s *big.Int) error {
 	return nil
 }
 
+// =============================================================================
+
 // ToSignatureBytes converts the r, s, v values into a slice of bytes
 // with the removal of the ardanID.
 func ToSignatureBytes(v, r, s *big.Int) []byte {
@@ -108,6 +111,17 @@ func ToSignatureBytes(v, r, s *big.Int) []byte {
 
 	return sig
 }
+
+// ToSignatureBytesWithArdanID converts the r, s, v values into a slice of bytes
+// keeping the Ardan id.
+func ToSignatureBytesWithArdanID(v, r, s *big.Int) []byte {
+	sig := ToSignatureBytes(v, r, s)
+	sig[64] = byte(v.Uint64())
+
+	return sig
+}
+
+// =============================================================================
 
 // FromAddress extracts the address for the account that signed the data.
 func FromAddress(value any, v, r, s *big.Int) (string, error) {
@@ -129,4 +143,9 @@ func FromAddress(value any, v, r, s *big.Int) (string, error) {
 
 	// Extract the account address from the public key.
 	return crypto.PubkeyToAddress(*publicKey).String(), nil
+}
+
+// SignatureString returns the signature as a string.
+func SignatureString(v, r, s *big.Int) string {
+	return hexutil.Encode(ToSignatureBytesWithArdanID(v, r, s))
 }
