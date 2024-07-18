@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ardanlabs/blockchain/foundation/blockchain/database"
+	"github.com/ardanlabs/blockchain/foundation/blockchain/genesis"
+	"github.com/ardanlabs/blockchain/foundation/blockchain/state"
+	"github.com/ethereum/go-ethereum/crypto"
 	"net/http"
 	"os"
 	"os/signal"
@@ -56,6 +60,12 @@ func run(log *zap.SugaredLogger) error {
 			PublicHost      string        `conf:"default:0.0.0.0:8080"`
 			PrivateHost     string        `conf:"default:0.0.0.0:9080"`
 		}
+		State struct {
+			Beneficiary string `conf:"default:miner1"`
+		}
+		NameService struct {
+			Folder string `conf:"default:zblock/accounts/"`
+		}
 	}{
 		Version: conf.Version{
 			Build: build,
@@ -87,6 +97,45 @@ func run(log *zap.SugaredLogger) error {
 
 	log.Infow("starting service", "version", build)
 	defer log.Infow("shutdown complete")
+
+	// =========================================================================
+	// Blockchain Support 需要区块链支持
+
+	// Need to load the private key file for the configured beneficiary so the
+	// account can get credited with fees and tips.
+	path := fmt.Sprintf("%s%s.ecdsa", cfg.NameService.Folder, cfg.State.Beneficiary)
+	privateKey, err := crypto.LoadECDSA(path)
+	if err != nil {
+		return fmt.Errorf("unable to load private key for node: %w", err)
+	}
+
+	// The blockchain packages accept a function of this signature to allow the
+	// application to log. For now, these raw messages are sent to any websocket
+	// client that is connected into the system through the events package.
+	ev := func(v string, args ...any) {
+		const websocketPrefix = "viewer:"
+
+		s := fmt.Sprintf(v, args...)
+		log.Infow(s, "traceid", "00000000-0000-0000-0000-000000000000")
+	}
+
+	// Load the genesis file for blockchain settings and origin balances.
+	genesis, err := genesis.Load()
+	if err != nil {
+		return err
+	}
+
+	// The state value represents the blockchain node and manages the blockchain
+	// database and provides an API for application support.
+	state, err := state.New(state.Config{
+		BeneficiaryID: database.PublicKeyToAccountID(privateKey.PublicKey),
+		Genesis:       genesis,
+		EvHandler:     ev,
+	})
+	if err != nil {
+		return err
+	}
+	defer state.Shutdown()
 
 	// Display the current configuration to the logs.
 	out, err := conf.String(&cfg)

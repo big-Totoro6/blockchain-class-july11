@@ -38,6 +38,8 @@ func New(genesis genesis.Genesis, evHandler func(v string, args ...any)) (*Datab
 			return nil, err
 		}
 		db.accounts[accountID] = newAccount(accountID, balance)
+		//我想看到更具体的 数据库里面分配了哪个账户 账户余额
+		evHandler("Account: %s, Balance: %d", accountID, balance)
 	}
 	return &db, nil
 }
