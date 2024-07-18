@@ -55,12 +55,12 @@ func (db *Database) Query(accountID AccountID) (Account, error) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
-	acount, exists := db.accounts[accountID]
+	account, exists := db.accounts[accountID]
 	if !exists {
 		return Account{}, errors.New("account does not exist")
 	}
 
-	return acount, nil
+	return account, nil
 }
 
 // Copy makes a copy of the current accounts in the database.
