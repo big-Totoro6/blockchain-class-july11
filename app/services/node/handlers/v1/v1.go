@@ -3,6 +3,7 @@
 package v1
 
 import (
+	"github.com/ardanlabs/blockchain/foundation/blockchain/state"
 	"net/http"
 
 	"github.com/ardanlabs/blockchain/app/services/node/handlers/v1/private"
@@ -15,7 +16,8 @@ const version = "v1"
 
 // Config contains all the mandatory systems required by handlers.
 type Config struct {
-	Log *zap.SugaredLogger
+	Log   *zap.SugaredLogger
+	State *state.State
 }
 
 // PublicRoutes binds all the version 1 public routes.
@@ -23,8 +25,10 @@ func PublicRoutes(app *web.App, cfg Config) {
 	pbl := public.Handlers{
 		Log: cfg.Log,
 	}
+	app.Handle(http.MethodGet, version, "/genesis/list", pbl.Genesis)
+	app.Handle(http.MethodGet, version, "/accounts/list", pbl.Accounts)
+	app.Handle(http.MethodGet, version, "/accounts/list/:account", pbl.Accounts)
 
-	app.Handle(http.MethodGet, version, "/sample", pbl.Sample)
 }
 
 // PrivateRoutes binds all the version 1 private routes.

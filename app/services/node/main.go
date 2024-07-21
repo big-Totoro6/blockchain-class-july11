@@ -184,6 +184,7 @@ func run(log *zap.SugaredLogger) error {
 
 	// Construct the mux for the public API calls.
 	publicMux := handlers.PublicMux(handlers.MuxConfig{
+		State:    state,
 		Shutdown: shutdown,
 		Log:      log,
 	})

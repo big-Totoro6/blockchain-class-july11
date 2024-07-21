@@ -4,6 +4,7 @@ package handlers
 import (
 	"context"
 	"expvar"
+	"github.com/ardanlabs/blockchain/foundation/blockchain/state"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -18,6 +19,7 @@ import (
 // MuxConfig contains all the mandatory systems required by handlers.
 type MuxConfig struct {
 	Shutdown chan os.Signal
+	State    *state.State
 	Log      *zap.SugaredLogger
 }
 
@@ -44,7 +46,8 @@ func PublicMux(cfg MuxConfig) http.Handler {
 
 	// Load the v1 routes.
 	v1.PublicRoutes(app, v1.Config{
-		Log: cfg.Log,
+		Log:   cfg.Log,
+		State: cfg.State,
 	})
 
 	return app
