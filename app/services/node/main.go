@@ -61,7 +61,8 @@ func run(log *zap.SugaredLogger) error {
 			PrivateHost     string        `conf:"default:0.0.0.0:9080"`
 		}
 		State struct {
-			Beneficiary string `conf:"default:miner1"`
+			Beneficiary    string `conf:"default:miner1"`
+			SelectStrategy string `conf:"default:Tip"`
 		}
 		NameService struct {
 			Folder string `conf:"default:zblock/accounts/"`
@@ -128,9 +129,10 @@ func run(log *zap.SugaredLogger) error {
 	// The state value represents the blockchain node and manages the blockchain
 	// database and provides an API for application support.
 	state, err := state.New(state.Config{
-		BeneficiaryID: database.PublicKeyToAccountID(privateKey.PublicKey),
-		Genesis:       genesis,
-		EvHandler:     ev,
+		BeneficiaryID:  database.PublicKeyToAccountID(privateKey.PublicKey),
+		SelectStrategy: cfg.State.SelectStrategy,
+		Genesis:        genesis,
+		EvHandler:      ev,
 	})
 	if err != nil {
 		return err
