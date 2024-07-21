@@ -5,6 +5,7 @@ package state
 import (
 	"github.com/ardanlabs/blockchain/foundation/blockchain/database"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/genesis"
+	"github.com/ardanlabs/blockchain/foundation/blockchain/mempool"
 	"sync"
 )
 
@@ -17,21 +18,21 @@ type EventHandler func(v string, args ...any)
 // Config represents the configuration required to start
 // the blockchain node.
 type Config struct {
-	BeneficiaryID database.AccountID //受益人以太坊地址
-	Genesis       genesis.Genesis
-	EvHandler     EventHandler
+	BeneficiaryID  database.AccountID //受益人以太坊地址
+	Genesis        genesis.Genesis
+	SelectStrategy string
+	EvHandler      EventHandler
 }
 
 // State manages the blockchain database.
 type State struct {
-	mu          sync.RWMutex
-	resyncWG    sync.WaitGroup
-	allowMining bool
+	mu sync.RWMutex
 
 	beneficiaryID database.AccountID
 	evHandler     EventHandler
 
 	genesis genesis.Genesis
+	mempool *mempool.Mempool
 	db      *database.Database
 }
 
@@ -51,12 +52,18 @@ func New(cfg Config) (*State, error) {
 		return nil, err
 	}
 
+	// Construct a mempool with the specified sort strategy.
+	mempool, err := mempool.NewWithStrategy(cfg.SelectStrategy)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create the State to provide support for managing the blockchain.
 	state := State{
 		beneficiaryID: cfg.BeneficiaryID,
 		evHandler:     ev,
-		allowMining:   true,
 
+		mempool: mempool,
 		genesis: cfg.Genesis,
 		db:      db,
 	}
@@ -67,8 +74,21 @@ func New(cfg Config) (*State, error) {
 func (s *State) Shutdown() error {
 	s.evHandler("state: shutdown: started")
 	defer s.evHandler("state: shutdown: completed")
-
-	// Wait for any resync to finish.
-	s.resyncWG.Wait()
 	return nil
+}
+
+// ====================================mempool api===========================================================
+// MempoolLength returns the current length of the mempool.
+func (s *State) MempoolLength() int {
+	return s.mempool.Count()
+}
+
+// Mempool returns a copy of the mempool.因为我们没传值
+func (s *State) Mempool() []database.BlockTx {
+	return s.mempool.PickBest()
+}
+
+// UpsertMempool adds a new transaction to the mempool.
+func (s *State) UpsertMempool(tx database.BlockTx) error {
+	return s.mempool.Upsert(tx)
 }
