@@ -57,3 +57,36 @@ func (h Handlers) Accounts(ctx context.Context, w http.ResponseWriter, r *http.R
 
 	return web.Respond(ctx, w, accounts, http.StatusOK)
 }
+
+// Mempool returns the set of uncommitted transactions.
+func (h Handlers) Mempool(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	acct := web.Param(r, "account")
+
+	mempool := h.State.Mempool()
+
+	//保证即使内存池空的也会返回一个空的交易列表
+	trans := []tx{}
+	//遍历 mempool 中的所有交易，并筛选出与特定账户（acct）相关的交易。如果交易的发送方或接收方与指定的账户匹配，则继续处理该交易；否则，跳过该交易
+	for _, tran := range mempool {
+		//把与账户匹配的交易赛选
+		if acct != "" && ((acct != string(tran.FromID)) && (acct != string(tran.ToID))) {
+			continue
+		}
+
+		trans = append(trans, tx{
+			FromAccount: tran.FromID,
+			To:          tran.ToID,
+			ChainID:     tran.ChainID,
+			Nonce:       tran.Nonce,
+			Value:       tran.Value,
+			Tip:         tran.Tip,
+			Data:        tran.Data,
+			TimeStamp:   tran.TimeStamp,
+			GasPrice:    tran.GasPrice,
+			GasUnits:    tran.GasUnits,
+			Sig:         tran.SignatureString(),
+		})
+	}
+
+	return web.Respond(ctx, w, trans, http.StatusOK)
+}
