@@ -7,6 +7,7 @@ import (
 	"github.com/ardanlabs/blockchain/foundation/blockchain/database"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/genesis"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/state"
+	"github.com/ardanlabs/blockchain/foundation/nameservice"
 	"github.com/ethereum/go-ethereum/crypto"
 	"net/http"
 	"os"
@@ -100,6 +101,21 @@ func run(log *zap.SugaredLogger) error {
 	defer log.Infow("shutdown complete")
 
 	// =========================================================================
+	// Name Service Support
+
+	// The nameservice package provides name resolution for account addresses.
+	// The names come from the file names in the zblock/accounts folder.
+	ns, err := nameservice.New(cfg.NameService.Folder)
+	if err != nil {
+		return fmt.Errorf("unable to load account name service: %w", err)
+	}
+
+	// Logging the accounts for documentation in the logs.
+	for account, name := range ns.Copy() {
+		log.Infow("startup", "status", "nameservice", "name", name, "account", account)
+	}
+
+	// =========================================================================
 	// Blockchain Support 需要区块链支持
 
 	// Need to load the private key file for the configured beneficiary so the
@@ -187,6 +203,7 @@ func run(log *zap.SugaredLogger) error {
 		State:    state,
 		Shutdown: shutdown,
 		Log:      log,
+		NS:       ns,
 	})
 
 	// Construct a server to service the requests against the mux.

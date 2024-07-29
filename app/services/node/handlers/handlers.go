@@ -5,6 +5,7 @@ import (
 	"context"
 	"expvar"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/state"
+	"github.com/ardanlabs/blockchain/foundation/nameservice"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -21,6 +22,7 @@ type MuxConfig struct {
 	Shutdown chan os.Signal
 	State    *state.State
 	Log      *zap.SugaredLogger
+	NS       *nameservice.NameService
 }
 
 // PublicMux constructs a http.Handler with all application routes defined.
@@ -48,6 +50,7 @@ func PublicMux(cfg MuxConfig) http.Handler {
 	v1.PublicRoutes(app, v1.Config{
 		Log:   cfg.Log,
 		State: cfg.State,
+		NS:    cfg.NS,
 	})
 
 	return app

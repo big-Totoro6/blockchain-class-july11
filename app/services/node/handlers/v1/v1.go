@@ -4,6 +4,7 @@ package v1
 
 import (
 	"github.com/ardanlabs/blockchain/foundation/blockchain/state"
+	"github.com/ardanlabs/blockchain/foundation/nameservice"
 	"net/http"
 
 	"github.com/ardanlabs/blockchain/app/services/node/handlers/v1/private"
@@ -18,6 +19,7 @@ const version = "v1"
 type Config struct {
 	Log   *zap.SugaredLogger
 	State *state.State
+	NS    *nameservice.NameService
 }
 
 // PublicRoutes binds all the version 1 public routes.
@@ -25,6 +27,7 @@ func PublicRoutes(app *web.App, cfg Config) {
 	pbl := public.Handlers{
 		Log:   cfg.Log,
 		State: cfg.State,
+		NS:    cfg.NS,
 	}
 	app.Handle(http.MethodGet, version, "/genesis/list", pbl.Genesis)
 	app.Handle(http.MethodGet, version, "/accounts/list", pbl.Accounts)

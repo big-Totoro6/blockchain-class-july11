@@ -7,6 +7,7 @@ import (
 	"github.com/ardanlabs/blockchain/business/web/errs"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/database"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/state"
+	"github.com/ardanlabs/blockchain/foundation/nameservice"
 	"net/http"
 
 	"github.com/ardanlabs/blockchain/foundation/web"
@@ -17,6 +18,7 @@ import (
 type Handlers struct {
 	Log   *zap.SugaredLogger
 	State *state.State
+	NS    *nameservice.NameService
 }
 
 // Sample just provides a starting point for the class.
@@ -109,6 +111,8 @@ func (h Handlers) Mempool(ctx context.Context, w http.ResponseWriter, r *http.Re
 
 		trans = append(trans, tx{
 			FromAccount: tran.FromID,
+			FromName:    h.NS.Lookup(tran.FromID),
+			ToName:      h.NS.Lookup(tran.ToID),
 			To:          tran.ToID,
 			ChainID:     tran.ChainID,
 			Nonce:       tran.Nonce,

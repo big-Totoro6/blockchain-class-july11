@@ -6,6 +6,8 @@ import "github.com/ardanlabs/blockchain/foundation/blockchain/database"
 type tx struct {
 	FromAccount database.AccountID `json:"from"`
 	To          database.AccountID `json:"to"`
+	FromName    string             `json:"from_name"`
+	ToName      string             `json:"to_name"`
 	ChainID     uint16             `json:"chain_id"`
 	Nonce       uint64             `json:"nonce"`
 	Value       uint64             `json:"value"`
