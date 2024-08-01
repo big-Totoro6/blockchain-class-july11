@@ -164,9 +164,11 @@ func (b *Block) performPOW(ctx context.Context, ev func(v string, args ...any)) 
 		hash := b.Hash()
 		if !isHashSolved(b.Header.Difficulty, hash) {
 			b.Header.Nonce++
+			//记住这里是没找到合适的 他会回到上面for循环的开头 当contine之后
 			continue
 		}
-
+		//执行到这里就代表找到了需要的hash
+		//if you have solution; go for that you do not need sb tell you. you should cancel then you cancel
 		ev("database: PerformPOW: MINING: SOLVED: prevBlk[%s]: newBlk[%s]", b.Header.PrevBlockHash, hash)
 		ev("database: PerformPOW: MINING: attempts[%d]", attempts)
 
@@ -273,6 +275,7 @@ func isHashSolved(difficulty uint16, hash string) bool {
 		return false
 	}
 
+	//也就是说 假如传入的difficulty是4  不管执行多少遍这个代码 最终比较的都是hash[:6] 比较前六位 相当于这是我们自己手动给传进来的难度值去调整难度
 	difficulty += 2
 	return hash[:difficulty] == match[:difficulty]
 }
