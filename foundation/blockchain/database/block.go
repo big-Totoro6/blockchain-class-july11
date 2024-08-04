@@ -56,15 +56,15 @@ func ToBlock(blockData BlockData) (Block, error) {
 
 // BlockHeader represents common information required for each block.
 type BlockHeader struct {
-	Number        uint64    `json:"number"`          // Ethereum: Block number in the chain.
-	PrevBlockHash string    `json:"prev_block_hash"` // Bitcoin: Hash of the previous block in the chain.
-	TimeStamp     uint64    `json:"timestamp"`       // Bitcoin: Time the block was mined.
-	BeneficiaryID AccountID `json:"beneficiary"`     // Ethereum: The account who is receiving fees and tips.
-	Difficulty    uint16    `json:"difficulty"`      // Ethereum: Number of 0's needed to solve the hash solution.
-	MiningReward  uint64    `json:"mining_reward"`   // Ethereum: The reward for mining this block.
-	StateRoot     string    `json:"state_root"`      // Ethereum: Represents a hash of the accounts and their balances.
-	TransRoot     string    `json:"trans_root"`      // Both: Represents the merkle tree root hash for the transactions in this block.
-	Nonce         uint64    `json:"nonce"`           // Both: Value identified to solve the hash solution.
+	Number        uint64    `json:"number"`          // Ethereum: Block number in the chain. 区块在链中的编号。
+	PrevBlockHash string    `json:"prev_block_hash"` // Bitcoin: Hash of the previous block in the chain. 前一个区块的哈希值。
+	TimeStamp     uint64    `json:"timestamp"`       // Bitcoin: Time the block was mined. 区块被挖掘的时间。
+	BeneficiaryID AccountID `json:"beneficiary"`     // Ethereum: The account who is receiving fees and tips. 收取手续费和小费的账户。
+	Difficulty    uint16    `json:"difficulty"`      // Ethereum: Number of 0's needed to solve the hash solution. 解决哈希函数所需的前导零的数量。
+	MiningReward  uint64    `json:"mining_reward"`   // Ethereum: The reward for mining this block. 挖掘此区块的奖励。
+	StateRoot     string    `json:"state_root"`      // Ethereum: Represents a hash of the accounts and their balances. 表示账户及其余额的哈希值。
+	TransRoot     string    `json:"trans_root"`      // Both: Represents the merkle tree root hash for the transactions in this block. 表示此区块中交易的默克尔树根哈希。
+	Nonce         uint64    `json:"nonce"`           // Both: Value identified to solve the hash solution. 解决哈希函数的数值标识。
 }
 
 // Block represents a group of transactions batched together.
@@ -75,13 +75,13 @@ type Block struct {
 
 // POWArgs represents the set of arguments required to run POW.
 type POWArgs struct {
-	BeneficiaryID AccountID
-	Difficulty    uint16
-	MiningReward  uint64
-	PrevBlock     Block
-	StateRoot     string
-	Trans         []BlockTx
-	EvHandler     func(v string, args ...any)
+	BeneficiaryID AccountID                   // 受益者ID，指定接收挖矿奖励的账户ID
+	Difficulty    uint16                      // 难度，表示挖矿过程中要求的工作量难度
+	MiningReward  uint64                      // 挖矿奖励，表示成功挖到新区块后给予矿工的奖励数量
+	PrevBlock     Block                       // 前一个区块，包含了前一个区块的信息，用于构建新区块的前置条件
+	StateRoot     string                      // 状态根，表示当前区块链状态的根哈希值，用于构建新区块时的状态校验
+	Trans         []BlockTx                   // 交易列表，包含了新区块要包含的所有交易
+	EvHandler     func(v string, args ...any) // 事件处理器，用于处理挖矿过程中的各种事件
 }
 
 // POW constructs a new Block and performs the work to find a nonce that

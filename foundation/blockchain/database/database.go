@@ -9,15 +9,18 @@ package database
 import (
 	"errors"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/genesis"
+	"github.com/ardanlabs/blockchain/foundation/blockchain/signature"
+	"sort"
 	"sync"
 )
 
 // Database 需要一个数据库的类型 里面有互斥锁   基础配置 以及账户信息 是一个map  通过账户的id 也就是以太坊地址 去关联 完整的账户信息
 // Database manages data related to accounts who have transacted on the blockchain.
 type Database struct {
-	mu       sync.RWMutex
-	genesis  genesis.Genesis
-	accounts map[AccountID]Account
+	mu          sync.RWMutex
+	genesis     genesis.Genesis
+	latestBlock Block
+	accounts    map[AccountID]Account
 }
 
 // New 需要一个工程函数 去构建这个数据库 他是指针传递，意味着我们不想它复制太多，有一个实例即可
@@ -75,4 +78,38 @@ func (db *Database) Copy() map[AccountID]Account {
 		accounts[accountID] = account
 	}
 	return accounts
+}
+
+// HashState returns a hash based on the contents of the accounts and
+// their balances. This is added to each block and checked by peers.
+// why you need that？
+// we need same hash ,so we need same order.the data storage in map,so its random, when we pick up ,we sort it up
+func (db *Database) HashState() string {
+	accounts := make([]Account, 0, len(db.accounts))
+	db.mu.RLock()
+	{
+		for _, account := range db.accounts {
+			accounts = append(accounts, account)
+		}
+	}
+	db.mu.RUnlock()
+
+	sort.Sort(byAccount(accounts))
+	return signature.Hash(accounts)
+}
+
+// UpdateLatestBlock provides safe access to update the latest block.
+func (db *Database) UpdateLatestBlock(block Block) {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	db.latestBlock = block
+}
+
+// LatestBlock returns the latest block.
+func (db *Database) LatestBlock() Block {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
+	return db.latestBlock
 }
