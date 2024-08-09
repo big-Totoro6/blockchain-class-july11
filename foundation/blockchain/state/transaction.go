@@ -1,7 +1,6 @@
 package state
 
 import (
-	"context"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/database"
 )
 
@@ -28,13 +27,17 @@ func (s *State) UpsertWalletTransaction(signedTx database.SignedTx) error {
 		return err
 	}
 
-	//Hack  手动的去触发 当待处理的交易池里有六条交易时 去挖一个新的矿 因为是异步 而且挖矿很耗时 用 go func 启动一个新的go线程去异步执行 不要阻塞主线程
-	if s.mempool.Count() == 6 {
-		go func() {
-			s.MineNewBlock(context.Background())
-			//执行到这里也就意味着有了有意义的nonce，形成了新的block 这时候手动把mempool清空
-			s.mempool.Truncate()
-		}()
-	}
+	////Hack  手动的去触发 当待处理的交易池里有六条交易时 去挖一个新的矿 因为是异步 而且挖矿很耗时 用 go func 启动一个新的go线程去异步执行 不要阻塞主线程
+	//if s.mempool.Count() == 6 {
+	//	go func() {
+	//		s.MineNewBlock(context.Background())
+	//		//执行到这里也就意味着有了有意义的nonce，形成了新的block 这时候手动把mempool清空
+	//		s.mempool.Truncate()
+	//	}()
+	//}
+
+	// now we use worker to signal the behavior above 去替代hack 用另一种创建线程的方式去触发挖矿的行为
+	s.Worker.SignalStartMining()
+
 	return nil
 }

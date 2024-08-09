@@ -13,6 +13,14 @@ import (
 // occur in the processing of persisting blocks.
 type EventHandler func(v string, args ...any)
 
+// Worker interface represents the behavior required to be implemented by any
+// package providing support for mining, peer updates, and transaction sharing.
+type Worker interface {
+	Shutdown()
+	SignalStartMining()
+	SignalCancelMining()
+}
+
 // =============================================================================
 
 // Config represents the configuration required to start
@@ -26,7 +34,9 @@ type Config struct {
 
 // State manages the blockchain database.
 type State struct {
-	mu sync.RWMutex
+	mu          sync.RWMutex
+	resyncWG    sync.WaitGroup
+	allowMining bool
 
 	beneficiaryID database.AccountID
 	evHandler     EventHandler
@@ -34,6 +44,8 @@ type State struct {
 	genesis genesis.Genesis
 	mempool *mempool.Mempool
 	db      *database.Database
+
+	Worker Worker
 }
 
 // New constructs a new blockchain for data management.
@@ -74,7 +86,25 @@ func New(cfg Config) (*State, error) {
 func (s *State) Shutdown() error {
 	s.evHandler("state: shutdown: started")
 	defer s.evHandler("state: shutdown: completed")
+
+	// Stop all blockchain writing activity.
+	s.Worker.Shutdown()
+
+	// Wait for any resync to finish.
+	s.resyncWG.Wait()
+
 	return nil
+}
+
+// =============================================================================
+
+// IsMiningAllowed identifies if we are allowed to mine blocks. This
+// might be turned off if the blockchain needs to be re-synced.
+func (s *State) IsMiningAllowed() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.allowMining
 }
 
 // ====================================mempool api===========================================================
