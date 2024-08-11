@@ -14,6 +14,23 @@ import (
 	"sync"
 )
 
+// Storage interface represents the behavior required to be implemented by any
+// package providing support for reading and writing the blockchain.
+type Storage interface {
+	Write(blockData BlockData) error
+	GetBlock(num uint64) (BlockData, error)
+	ForEach() Iterator
+	Close() error
+	Reset() error
+}
+
+// Iterator interface represents the behavior required to be implemented by any
+// package providing support to iterate over the blocks.
+type Iterator interface {
+	Next() (BlockData, error)
+	Done() bool
+}
+
 // Database 需要一个数据库的类型 里面有互斥锁   基础配置 以及账户信息 是一个map  通过账户的id 也就是以太坊地址 去关联 完整的账户信息
 // Database manages data related to accounts who have transacted on the blockchain.
 type Database struct {
@@ -21,6 +38,7 @@ type Database struct {
 	genesis     genesis.Genesis
 	latestBlock Block
 	accounts    map[AccountID]Account
+	storage     Storage
 }
 
 // New 需要一个工程函数 去构建这个数据库 他是指针传递，意味着我们不想它复制太多，有一个实例即可
@@ -112,4 +130,49 @@ func (db *Database) LatestBlock() Block {
 	defer db.mu.RUnlock()
 
 	return db.latestBlock
+}
+
+// Write adds a new block to the chain.
+func (db *Database) Write(block Block) error {
+	return db.storage.Write(NewBlockData(block))
+}
+
+// ForEach returns an iterator to walk through all the blocks
+// starting with block number 1.
+func (db *Database) ForEach() DatabaseIterator {
+	return DatabaseIterator{iterator: db.storage.ForEach()}
+}
+
+// GetBlock searches the blockchain on disk to locate and return the
+// contents of the specified block by number.
+func (db *Database) GetBlock(num uint64) (Block, error) {
+	blockData, err := db.storage.GetBlock(num)
+	if err != nil {
+		return Block{}, err
+	}
+
+	return ToBlock(blockData)
+}
+
+// =============================================================================
+
+// DatabaseIterator provides support for iterating over the blocks in the
+// blockchain database using the configured storage option.
+type DatabaseIterator struct {
+	iterator Iterator
+}
+
+// Next retrieves the next block from disk.
+func (di *DatabaseIterator) Next() (Block, error) {
+	blockData, err := di.iterator.Next()
+	if err != nil {
+		return Block{}, err
+	}
+
+	return ToBlock(blockData)
+}
+
+// Done returns the end of chain value.
+func (di *DatabaseIterator) Done() bool {
+	return di.iterator.Done()
 }
