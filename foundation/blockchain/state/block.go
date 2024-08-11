@@ -98,27 +98,27 @@ func (s *State) validateUpdateDatabase(block database.Block) error {
 
 	s.evHandler("state: validateUpdateDatabase: update accounts and remove from mempool")
 
-	//// Process the transactions and update the accounts.
-	//for _, tx := range block.MerkleTree.Values() {
-	//	s.evHandler("state: validateUpdateDatabase: tx[%s] update and remove", tx)
-	//
-	//	// Remove this transaction from the mempool.
-	//	s.mempool.Delete(tx)
-	//
-	//	// Apply the balance changes based on this transaction.
-	//	if err := s.db.ApplyTransaction(block, tx); err != nil {
-	//		s.evHandler("state: validateUpdateDatabase: WARNING : %s", err)
-	//		continue
-	//	}
-	//}
-	//
-	//s.evHandler("state: validateUpdateDatabase: apply mining reward")
-	//
-	//// Apply the mining reward for this block.
-	//s.db.ApplyMiningReward(block)
-	//
-	//// Send an event about this new block.
-	//s.blockEvent(block)
+	// Process the transactions and update the accounts.遍历区块里面的交易，并把交易里面金额的流动落实到账户上
+	for _, tx := range block.MerkleTree.Values() {
+		s.evHandler("state: validateUpdateDatabase: tx[%s] update and remove", tx)
+
+		// Remove this transaction from the mempool.
+		s.mempool.Delete(tx)
+
+		// Apply the balance changes based on this transaction.
+		if err := s.db.ApplyTransaction(block, tx); err != nil {
+			s.evHandler("state: validateUpdateDatabase: WARNING : %s", err)
+			continue
+		}
+	}
+
+	s.evHandler("state: validateUpdateDatabase: apply mining reward")
+
+	// Apply the mining reward for this block.
+	s.db.ApplyMiningReward(block)
+
+	// Send an event about this new block.
+	s.blockEvent(block)
 
 	return nil
 }
