@@ -132,3 +132,8 @@ func (s *State) Accounts() map[database.AccountID]database.Account {
 func (s *State) Genesis() genesis.Genesis {
 	return s.genesis
 }
+
+// LatestBlock returns a copy the current latest block.
+func (s *State) LatestBlock() database.Block {
+	return s.db.LatestBlock()
+}
