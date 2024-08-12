@@ -66,6 +66,33 @@ func New(genesis genesis.Genesis, evHandler func(v string, args ...any)) (*Datab
 	return &db, nil
 }
 
+// Close closes the open blocks database.
+func (db *Database) Close() {
+	db.storage.Close()
+}
+
+// Reset re-initializes the database back to the genesis state.
+func (db *Database) Reset() error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	db.storage.Reset()
+
+	// Initializes the database back to the genesis information.
+	db.latestBlock = Block{}
+	db.accounts = make(map[AccountID]Account)
+	for accountStr, balance := range db.genesis.Balances {
+		accountID, err := ToAccountID(accountStr)
+		if err != nil {
+			return err
+		}
+
+		db.accounts[accountID] = newAccount(accountID, balance)
+	}
+
+	return nil
+}
+
 // Remove deletes an account from the database.
 func (db *Database) Remove(accountID AccountID) {
 	db.mu.Lock()

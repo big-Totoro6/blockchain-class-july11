@@ -7,6 +7,7 @@ import (
 	"github.com/ardanlabs/blockchain/foundation/blockchain/database"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/genesis"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/state"
+	"github.com/ardanlabs/blockchain/foundation/blockchain/storage/memory"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/worker"
 	"github.com/ardanlabs/blockchain/foundation/nameservice"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -137,6 +138,12 @@ func run(log *zap.SugaredLogger) error {
 		log.Infow(s, "traceid", "00000000-0000-0000-0000-000000000000")
 	}
 
+	// Construct the use of memory storage.
+	storage, err := memory.New()
+	if err != nil {
+		return err
+	}
+
 	// Load the genesis file for blockchain settings and origin balances.
 	genesis, err := genesis.Load()
 	if err != nil {
@@ -147,6 +154,7 @@ func run(log *zap.SugaredLogger) error {
 	// database and provides an API for application support.
 	state, err := state.New(state.Config{
 		BeneficiaryID:  database.PublicKeyToAccountID(privateKey.PublicKey),
+		Storage:        storage,
 		SelectStrategy: cfg.State.SelectStrategy,
 		Genesis:        genesis,
 		EvHandler:      ev,

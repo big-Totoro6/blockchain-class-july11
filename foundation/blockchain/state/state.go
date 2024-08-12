@@ -27,6 +27,7 @@ type Worker interface {
 // the blockchain node.
 type Config struct {
 	BeneficiaryID  database.AccountID //受益人以太坊地址
+	Storage        database.Storage
 	Genesis        genesis.Genesis
 	SelectStrategy string
 	EvHandler      EventHandler
@@ -41,6 +42,7 @@ type State struct {
 	beneficiaryID database.AccountID
 	evHandler     EventHandler
 
+	storage database.Storage
 	genesis genesis.Genesis
 	mempool *mempool.Mempool
 	db      *database.Database
@@ -72,6 +74,7 @@ func New(cfg Config) (*State, error) {
 
 	// Create the State to provide support for managing the blockchain.
 	state := State{
+		storage:       cfg.Storage,
 		beneficiaryID: cfg.BeneficiaryID,
 		evHandler:     ev,
 
@@ -86,6 +89,11 @@ func New(cfg Config) (*State, error) {
 func (s *State) Shutdown() error {
 	s.evHandler("state: shutdown: started")
 	defer s.evHandler("state: shutdown: completed")
+
+	// Make sure the database file is properly closed.
+	defer func() {
+		s.db.Close()
+	}()
 
 	// Stop all blockchain writing activity.
 	s.Worker.Shutdown()
