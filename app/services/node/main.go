@@ -66,6 +66,7 @@ func run(log *zap.SugaredLogger) error {
 		State struct {
 			Beneficiary    string `conf:"default:miner1"`
 			SelectStrategy string `conf:"default:Tip"`
+			DBPath         string `conf:"default:zblock/miner1/"`
 		}
 		NameService struct {
 			Folder string `conf:"default:zblock/accounts/"`
@@ -138,12 +139,11 @@ func run(log *zap.SugaredLogger) error {
 		log.Infow(s, "traceid", "00000000-0000-0000-0000-000000000000")
 	}
 
-	// Construct the use of memory storage.
+	// Construct the use of disk storage.
 	storage, err := memory.New()
 	if err != nil {
 		return err
 	}
-
 	// Load the genesis file for blockchain settings and origin balances.
 	genesis, err := genesis.Load()
 	if err != nil {

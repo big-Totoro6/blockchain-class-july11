@@ -61,7 +61,7 @@ func New(cfg Config) (*State, error) {
 	}
 
 	// Access the storage for the blockchain.
-	db, err := database.New(cfg.Genesis, ev)
+	db, err := database.New(cfg.Genesis, cfg.Storage, ev)
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +77,7 @@ func New(cfg Config) (*State, error) {
 		storage:       cfg.Storage,
 		beneficiaryID: cfg.BeneficiaryID,
 		evHandler:     ev,
+		allowMining:   true,
 
 		mempool: mempool,
 		genesis: cfg.Genesis,

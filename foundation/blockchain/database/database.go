@@ -46,13 +46,13 @@ type Database struct {
 // New evHandler 他是一个事件函数，因为我们不想把它跟这个工厂函数强绑定，通过这种方式，由调用者自己定义自己想要的事件处理函数（比如log 或者什么 自己自定义）这样更灵活
 // New constructs a new database and applies account genesis information and
 // reads/writes the blockchain database on disk if a dbPath is provided.
-func New(genesis genesis.Genesis, evHandler func(v string, args ...any)) (*Database, error) {
+func New(genesis genesis.Genesis, storage Storage, evHandler func(v string, args ...any)) (*Database, error) {
 	db := Database{
 		genesis:  genesis,
 		accounts: make(map[AccountID]Account),
-	} //注意这里的make 不先开辟空间 切片会抛异常的
+		storage:  storage,
+	}
 
-	// 把初始配置里的账户信息 更新到数据库里面
 	// Update the database with account balance information from genesis.
 	for accountStr, balance := range genesis.Balances {
 		accountID, err := ToAccountID(accountStr)
@@ -60,9 +60,30 @@ func New(genesis genesis.Genesis, evHandler func(v string, args ...any)) (*Datab
 			return nil, err
 		}
 		db.accounts[accountID] = newAccount(accountID, balance)
-		//我想看到更具体的 数据库里面分配了哪个账户 账户余额
-		evHandler("Account: %s, Balance: %d", accountID, balance)
 	}
+
+	// Read all the blocks from storage.
+	iter := db.ForEach()
+	for block, err := iter.Next(); !iter.Done(); block, err = iter.Next() {
+		if err != nil {
+			return nil, err
+		}
+
+		// Validate the block values and cryptographic audit trail.
+		if err := block.ValidateBlock(db.latestBlock, db.HashState(), evHandler); err != nil {
+			return nil, err
+		}
+
+		// Update the database with the transaction information.
+		for _, tx := range block.MerkleTree.Values() {
+			db.ApplyTransaction(block, tx)
+		}
+		db.ApplyMiningReward(block)
+
+		// Update the current latest block.
+		db.latestBlock = block
+	}
+
 	return &db, nil
 }
 
