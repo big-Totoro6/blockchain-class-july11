@@ -63,3 +63,4 @@ ehthumbs.db
 
 # Ignore IML files (IntelliJ IDEA module files)
 *.iml
+vendor/
