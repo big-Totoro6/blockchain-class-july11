@@ -1,45 +1,30 @@
 package mid
 
 import (
-	"context"
-	"net/http"
-
 	"github.com/ardanlabs/blockchain/business/web/metrics"
-	"github.com/ardanlabs/blockchain/foundation/web"
+	"github.com/gin-gonic/gin"
 )
 
+// Metrics 适配步骤
+// 使用 Gin 上下文：用 *gin.Context 替代 context.Context。
+// 设置和更新指标：将指标相关的操作适配到 Gin 上下文中，并在请求处理过程中更新这些指标。
+// 记录指标数据：在 Gin 上下文中设置和更新指标，确保所有中间件和处理程序都可以访问和更新这些指标。
 // Metrics updates program counters.
-func Metrics() web.Middleware {
+func Metrics() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Set metrics into the Gin context.
+		metrics.Set(c)
 
-	// This is the actual middleware function to be executed.
-	m := func(handler web.Handler) web.Handler {
+		// Process the request.
+		c.Next()
 
-		// Create the handler that will be attached in the middleware chain.
-		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		// After the request has been processed, update the metrics.
+		metrics.AddRequests(c.Request.Context())
+		metrics.AddGoroutines(c.Request.Context())
 
-			// Add the metrics into the context for metric gathering.
-			ctx = metrics.Set(ctx)
-
-			// Call the next handler.
-			err := handler(ctx, w, r)
-
-			// Handle updating the metrics that can be handled here.
-
-			// Increment the request and goroutines counter.
-			metrics.AddRequests(ctx)
-			metrics.AddGoroutines(ctx)
-
-			// Increment if there is an error flowing through the request.
-			if err != nil {
-				metrics.AddErrors(ctx)
-			}
-
-			// Return the error so it can be handled further up the chain.
-			return err
+		// Check if there were any errors and update the metrics accordingly.
+		if len(c.Errors) > 0 {
+			metrics.AddErrors(c.Request.Context())
 		}
-
-		return h
 	}
-
-	return m
 }

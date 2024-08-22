@@ -1,8 +1,7 @@
 package mid
 
 import (
-	"context"
-	"errors"
+	"github.com/gin-gonic/gin"
 	"net/http"
 
 	"github.com/ardanlabs/blockchain/business/sys/validate"
@@ -11,79 +10,65 @@ import (
 	"go.uber.org/zap"
 )
 
-// Errors handles errors coming out of the call chain. It detects normal
-// application errors which are used to respond to the client in a uniform way.
-// Unexpected errors (status >= 500) are logged.
-func Errors(log *zap.SugaredLogger) web.Middleware {
+// Errors handles errors and responds with a standardized format.
+func Errors(log *zap.SugaredLogger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Process the request and let other handlers execute
+		c.Next()
 
-	// This is the actual middleware function to be executed.
-	m := func(handler web.Handler) web.Handler {
+		// Check if any errors occurred during request processing
+		if len(c.Errors) > 0 {
+			// Get the first error
+			err := c.Errors[0].Err
 
-		// Create the handler that will be attached in the middleware chain.
-		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-
-			// If the context is missing this value, request the service
-			// to be shutdown gracefully.
-			v, err := web.GetValues(ctx)
-			if err != nil {
-				return web.NewShutdownError("web value missing from context")
+			// Retrieve context values
+			values, ok := c.Get("context_values")
+			if !ok {
+				// Handle the case where context values are missing
+				log.Error("context values not found")
+				// Create a shutdown error or handle it accordingly
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+				return
 			}
 
-			// Run the next handler and catch any propagated error.
-			if err := handler(ctx, w, r); err != nil {
-
-				// Log the error.
-				log.Errorw("ERROR", "traceid", v.TraceID, "ERROR", err)
-
-				// Build out the error response.
-				var er v1Web.ErrorResponse
-				var status int
-				switch {
-				case validate.IsFieldErrors(err):
-					fieldErrors := validate.GetFieldErrors(err)
-					er = v1Web.ErrorResponse{
-						Error:  "data validation error",
-						Fields: fieldErrors.Fields(),
-					}
-					status = http.StatusBadRequest
-
-				case v1Web.IsRequestError(err):
-					reqErr := v1Web.GetRequestError(err)
-					er = v1Web.ErrorResponse{
-						Error: reqErr.Error(),
-					}
-					status = reqErr.Status
-
-				default:
-					er = v1Web.ErrorResponse{
-						Error: http.StatusText(http.StatusInternalServerError),
-					}
-					status = http.StatusInternalServerError
-				}
-
-				// Respond with the error back to the client.
-				if err := web.Respond(ctx, w, er, status); err != nil {
-
-					// If we get this error, it means the event handler
-					// has completed.
-					if !errors.Is(err, http.ErrHijacked) {
-						return err
-					}
-				}
-
-				// If we receive the shutdown err we need to return it
-				// back to the base handler to shut down the service.
-				if ok := web.IsShutdown(err); ok {
-					return err
-				}
+			// Type assert to *web.Values
+			v, _ := values.(*web.Values)
+			traceID := ""
+			if v != nil {
+				traceID = v.TraceID
 			}
 
-			// The error has been handled so we can stop propagating it.
-			return nil
+			// Log the error with trace ID
+			log.Errorw("ERROR", "traceid", traceID, "ERROR", err)
+
+			// Build out the error response
+			var er v1Web.ErrorResponse
+			var status int
+			switch {
+			case validate.IsFieldErrors(err):
+				fieldErrors := validate.GetFieldErrors(err)
+				er = v1Web.ErrorResponse{
+					Error:  "data validation error",
+					Fields: fieldErrors.Fields(),
+				}
+				status = http.StatusBadRequest
+
+			case v1Web.IsRequestError(err):
+				reqErr := v1Web.GetRequestError(err)
+				er = v1Web.ErrorResponse{
+					Error: reqErr.Error(),
+				}
+				status = reqErr.Status
+
+			default:
+				er = v1Web.ErrorResponse{
+					Error: http.StatusText(http.StatusInternalServerError),
+				}
+				status = http.StatusInternalServerError
+			}
+
+			// Respond with the error to the client
+			c.JSON(status, er)
 		}
-
-		return h
 	}
-
-	return m
 }

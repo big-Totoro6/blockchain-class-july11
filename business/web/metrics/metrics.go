@@ -4,6 +4,7 @@ package metrics
 import (
 	"context"
 	"expvar"
+	"github.com/gin-gonic/gin"
 	"runtime"
 )
 
@@ -49,9 +50,11 @@ const key ctxKey = 1
 
 // =============================================================================
 
-// Set sets the metrics data into the context.
-func Set(ctx context.Context) context.Context {
-	return context.WithValue(ctx, key, m)
+// Set sets the metrics data into the Gin context.
+func Set(c *gin.Context) {
+	ctx := c.Request.Context()
+	c.Set("metrics", m)
+	c.Request = c.Request.WithContext(ctx)
 }
 
 // Add more of these functions when a metric needs to be collected in
