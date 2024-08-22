@@ -2,10 +2,10 @@
 package handlers
 
 import (
-	"context"
 	"expvar"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/state"
 	"github.com/ardanlabs/blockchain/foundation/nameservice"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -13,7 +13,6 @@ import (
 	"github.com/ardanlabs/blockchain/app/services/node/handlers/debug/checkgrp"
 	v1 "github.com/ardanlabs/blockchain/app/services/node/handlers/v1"
 	"github.com/ardanlabs/blockchain/business/web/v1/mid"
-	"github.com/ardanlabs/blockchain/foundation/web"
 	"go.uber.org/zap"
 )
 
@@ -25,64 +24,61 @@ type MuxConfig struct {
 	NS       *nameservice.NameService
 }
 
-// PublicMux constructs a http.Handler with all application routes defined.
-func PublicMux(cfg MuxConfig) http.Handler {
+// PublicMux constructs a gin.Engine with all application routes defined.
+func PublicMux(cfg MuxConfig) *gin.Engine {
 
-	// Construct the web.App which holds all routes as well as common Middleware.
-	app := web.NewApp(
-		cfg.Shutdown,
-		mid.Logger(cfg.Log),
-		mid.Errors(cfg.Log),
-		mid.Metrics(),
-		mid.Cors("*"),
-		mid.Panics(),
-	)
+	// Create a new Gin engine
+	r := gin.Default()
 
-	// Accept CORS 'OPTIONS' preflight requests if config has been provided.
-	// Don't forget to apply the CORS middleware to the routes that need it.
-	// Example Config: `conf:"default:https://MY_DOMAIN.COM"`
-	h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-		return nil
-	}
-	app.Handle(http.MethodOptions, "", "/*", h, mid.Cors("*"))
+	// Apply middleware
+	r.Use(mid.Logger(cfg.Log))
+	r.Use(mid.Errors(cfg.Log))
+	r.Use(mid.Metrics())
+	r.Use(mid.Cors("*"))
+	r.Use(mid.Panics())
 
-	// Load the v1 routes.
-	v1.PublicRoutes(app, v1.Config{
+	// Handle OPTIONS requests for CORS preflight.
+	r.OPTIONS("/*path", func(c *gin.Context) {
+		c.Status(204) // Respond with 'No Content' for OPTIONS preflight requests.
+	})
+
+	// Load the v1 routes
+	v1Group := r.Group("/v1")
+	v1.PublicRoutes(v1Group, v1.Config{
 		Log:   cfg.Log,
 		State: cfg.State,
 		NS:    cfg.NS,
 	})
 
-	return app
+	return r
 }
 
 // PrivateMux constructs a http.Handler with all application routes defined.
 func PrivateMux(cfg MuxConfig) http.Handler {
 
-	// Construct the web.App which holds all routes as well as common Middleware.
-	app := web.NewApp(
-		cfg.Shutdown,
-		mid.Logger(cfg.Log),
-		mid.Errors(cfg.Log),
-		mid.Metrics(),
-		mid.Cors("*"),
-		mid.Panics(),
-	)
+	// Create a new Gin engine
+	r := gin.Default()
 
-	// Accept CORS 'OPTIONS' preflight requests if config has been provided.
-	// Don't forget to apply the CORS middleware to the routes that need it.
-	// Example Config: `conf:"default:https://MY_DOMAIN.COM"`
-	h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-		return nil
-	}
-	app.Handle(http.MethodOptions, "", "/*", h, mid.Cors("*"))
+	// Apply middleware
+	r.Use(mid.Logger(cfg.Log))
+	r.Use(mid.Errors(cfg.Log))
+	r.Use(mid.Metrics())
+	r.Use(mid.Cors("*"))
+	r.Use(mid.Panics())
 
-	// Load the v1 routes.
-	v1.PrivateRoutes(app, v1.Config{
-		Log: cfg.Log,
+	// Handle OPTIONS requests for CORS preflight.
+	r.OPTIONS("/*path", func(c *gin.Context) {
+		c.Status(204) // Respond with 'No Content' for OPTIONS preflight requests.
+	})
+	// Load the v1 routes
+	v1Group := r.Group("/v1")
+	v1.PrivateRoutes(v1Group, v1.Config{
+		Log:   cfg.Log,
+		State: cfg.State,
+		NS:    cfg.NS,
 	})
 
-	return app
+	return r
 }
 
 // DebugStandardLibraryMux registers all the debug routes from the standard library

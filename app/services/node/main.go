@@ -209,10 +209,9 @@ func run(log *zap.SugaredLogger) error {
 
 	// =========================================================================
 	// Start Public Service
-
 	log.Infow("startup", "status", "initializing V1 public API support")
 
-	// Construct the mux for the public API calls.
+	// 使用 Gin 适配 Public API
 	publicMux := handlers.PublicMux(handlers.MuxConfig{
 		State:    state,
 		Shutdown: shutdown,
@@ -220,17 +219,16 @@ func run(log *zap.SugaredLogger) error {
 		NS:       ns,
 	})
 
-	// Construct a server to service the requests against the mux.
-	public := http.Server{
+	public := &http.Server{
 		Addr:         cfg.Web.PublicHost,
-		Handler:      publicMux,
+		Handler:      publicMux, // 直接将 gin.Engine 用作 Handler
 		ReadTimeout:  cfg.Web.ReadTimeout,
 		WriteTimeout: cfg.Web.WriteTimeout,
 		IdleTimeout:  cfg.Web.IdleTimeout,
 		ErrorLog:     zap.NewStdLog(log.Desugar()),
 	}
 
-	// Start the service listening for api requests.
+	// 启动 Public 服务
 	go func() {
 		log.Infow("startup", "status", "public api router started", "host", public.Addr)
 		serverErrors <- public.ListenAndServe()
@@ -241,23 +239,22 @@ func run(log *zap.SugaredLogger) error {
 
 	log.Infow("startup", "status", "initializing V1 private API support")
 
-	// Construct the mux for the private API calls.
+	// 使用 Gin 适配 Private API
 	privateMux := handlers.PrivateMux(handlers.MuxConfig{
 		Shutdown: shutdown,
 		Log:      log,
 	})
 
-	// Construct a server to service the requests against the mux.
-	private := http.Server{
+	private := &http.Server{
 		Addr:         cfg.Web.PrivateHost,
-		Handler:      privateMux,
+		Handler:      privateMux, // 直接将 gin.Engine 用作 Handler
 		ReadTimeout:  cfg.Web.ReadTimeout,
 		WriteTimeout: cfg.Web.WriteTimeout,
 		IdleTimeout:  cfg.Web.IdleTimeout,
 		ErrorLog:     zap.NewStdLog(log.Desugar()),
 	}
 
-	// Start the service listening for api requests.
+	// 启动 Private 服务
 	go func() {
 		log.Infow("startup", "status", "private api router started", "host", private.Addr)
 		serverErrors <- private.ListenAndServe()

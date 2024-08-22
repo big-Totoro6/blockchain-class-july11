@@ -8,6 +8,7 @@ import (
 	"github.com/ardanlabs/blockchain/foundation/blockchain/database"
 	"github.com/ardanlabs/blockchain/foundation/blockchain/state"
 	"github.com/ardanlabs/blockchain/foundation/nameservice"
+	"github.com/gin-gonic/gin"
 	"net/http"
 
 	"github.com/ardanlabs/blockchain/foundation/web"
@@ -19,6 +20,16 @@ type Handlers struct {
 	Log   *zap.SugaredLogger
 	State *state.State
 	NS    *nameservice.NameService
+}
+
+// HandlerFuncAdapter 将旧的处理函数适配为 Gin 的 HandlerFunc
+func (h Handlers) HandlerFuncAdapter(fn func(ctx context.Context, w http.ResponseWriter, r *http.Request) error) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		err := fn(c, c.Writer, c.Request)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+	}
 }
 
 // Sample just provides a starting point for the class.

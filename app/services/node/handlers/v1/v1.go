@@ -3,13 +3,11 @@
 package v1
 
 import (
-	"github.com/ardanlabs/blockchain/foundation/blockchain/state"
-	"github.com/ardanlabs/blockchain/foundation/nameservice"
-	"net/http"
-
 	"github.com/ardanlabs/blockchain/app/services/node/handlers/v1/private"
 	"github.com/ardanlabs/blockchain/app/services/node/handlers/v1/public"
-	"github.com/ardanlabs/blockchain/foundation/web"
+	"github.com/ardanlabs/blockchain/foundation/blockchain/state"
+	"github.com/ardanlabs/blockchain/foundation/nameservice"
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
@@ -22,28 +20,28 @@ type Config struct {
 	NS    *nameservice.NameService
 }
 
-// PublicRoutes binds all the version 1 public routes.
-func PublicRoutes(app *web.App, cfg Config) {
+// PublicRoutes sets up the v1 routes for the given router group.
+func PublicRoutes(rg *gin.RouterGroup, cfg Config) {
 	pbl := public.Handlers{
 		Log:   cfg.Log,
 		State: cfg.State,
 		NS:    cfg.NS,
 	}
-	app.Handle(http.MethodGet, version, "/genesis/list", pbl.Genesis)
-	app.Handle(http.MethodGet, version, "/accounts/list", pbl.Accounts)
-	app.Handle(http.MethodGet, version, "/accounts/list/:account", pbl.Accounts)
-	app.Handle(http.MethodGet, version, "/tx/uncommitted/list", pbl.Mempool)
-	app.Handle(http.MethodGet, version, "/tx/uncommitted/list/:account", pbl.Mempool)
-	app.Handle(http.MethodPost, version, "/tx/submit", pbl.SubmitWalletTransaction)
-	app.Handle(http.MethodPost, version, "/tx/proof/:block/", pbl.SubmitWalletTransaction)
 
+	// Define routes and their handlers using the adapter
+	rg.GET("/genesis/list", pbl.HandlerFuncAdapter(pbl.Genesis))
+	rg.GET("/accounts/list", pbl.HandlerFuncAdapter(pbl.Accounts))
+	rg.GET("/accounts/list/:account", pbl.HandlerFuncAdapter(pbl.Accounts))
+	rg.GET("/tx/uncommitted/list", pbl.HandlerFuncAdapter(pbl.Mempool))
+	rg.GET("/tx/uncommitted/list/:account", pbl.HandlerFuncAdapter(pbl.Mempool))
+	rg.POST("/tx/submit", pbl.HandlerFuncAdapter(pbl.SubmitWalletTransaction))
+	rg.POST("/tx/proof/:block/", pbl.HandlerFuncAdapter(pbl.SubmitWalletTransaction))
 }
 
 // PrivateRoutes binds all the version 1 private routes.
-func PrivateRoutes(app *web.App, cfg Config) {
+func PrivateRoutes(rg *gin.RouterGroup, cfg Config) {
 	prv := private.Handlers{
 		Log: cfg.Log,
 	}
-
-	app.Handle(http.MethodGet, version, "/node/sample", prv.Sample)
+	rg.GET("/node/sample", prv.HandlerFuncAdapter(prv.Sample))
 }

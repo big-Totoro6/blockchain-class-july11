@@ -2,7 +2,6 @@
 package metrics
 
 import (
-	"context"
 	"expvar"
 	"github.com/gin-gonic/gin"
 	"runtime"
@@ -61,32 +60,35 @@ func Set(c *gin.Context) {
 // different parts of the codebase. This will keep this package the
 // central authority for metrics and metrics won't get lost.
 
-// AddGoroutines refreshes the goroutine metric every 100 requests.
-func AddGoroutines(ctx context.Context) {
-	if v, ok := ctx.Value(key).(*metrics); ok {
+// AddGoroutines refreshes the goroutine metric every 100 requests using Gin context.
+func AddGoroutines(c *gin.Context) {
+	if v, ok := c.Value("metrics").(*metrics); ok {
 		if v.requests.Value()%100 == 0 {
 			v.goroutines.Set(int64(runtime.NumGoroutine()))
 		}
 	}
 }
 
-// AddRequests increments the request metric by 1.
-func AddRequests(ctx context.Context) {
-	if v, ok := ctx.Value(key).(*metrics); ok {
+// AddRequests increments the request metric by 1 using Gin context.
+func AddRequests(c *gin.Context) {
+	if v, ok := c.Value("metrics").(*metrics); ok {
 		v.requests.Add(1)
 	}
 }
 
-// AddErrors increments the errors metric by 1.
-func AddErrors(ctx context.Context) {
-	if v, ok := ctx.Value(key).(*metrics); ok {
+// AddErrors increments the errors metric by 1 using Gin context.
+func AddErrors(c *gin.Context) {
+	if v, ok := c.Value("metrics").(*metrics); ok {
 		v.errors.Add(1)
 	}
 }
 
-// AddPanics increments the panics metric by 1.
-func AddPanics(ctx context.Context) {
-	if v, ok := ctx.Value(key).(*metrics); ok {
+// AddPanics increments the panics metric by 1 using Gin context.
+// Gin Context：Gin 使用 *gin.Context 来处理请求相关的上下文，而不是直接使用 context.Context。我们可以通过 c.Value("metrics_key") 来获取存储在 Gin 上下文中的 metrics 实例。
+// Key管理："metrics_key" 是用于从 Gin 上下文中提取 metrics 的键。您需要确保在之前的中间件或处理器中已将 metrics 存储在 Gin 上下文中。
+func AddPanics(c *gin.Context) {
+	// Assuming `metrics` is stored in the Gin context with a specific key.
+	if v, ok := c.Value("metrics_key").(*metrics); ok {
 		v.panics.Add(1)
 	}
 }
