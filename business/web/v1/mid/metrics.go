@@ -19,12 +19,12 @@ func Metrics() gin.HandlerFunc {
 		c.Next()
 
 		// After the request has been processed, update the metrics.
-		metrics.AddRequests(c.Request.Context())
-		metrics.AddGoroutines(c.Request.Context())
+		metrics.AddRequests(c)
+		metrics.AddGoroutines(c)
 
 		// Check if there were any errors and update the metrics accordingly.
 		if len(c.Errors) > 0 {
-			metrics.AddErrors(c.Request.Context())
+			metrics.AddErrors(c)
 		}
 	}
 }
