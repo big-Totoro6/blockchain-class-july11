@@ -23,10 +23,9 @@ type Handlers struct {
 	NS    *nameservice.NameService
 }
 
-// HandlerFuncAdapter 将旧的处理函数适配为 Gin 的 HandlerFunc
 func (h Handlers) HandlerFuncAdapter(fn func(ctx context.Context, w http.ResponseWriter, r *http.Request) error) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		err := fn(c, c.Writer, c.Request)
+		err := fn(c.Request.Context(), c.Writer, c.Request)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
