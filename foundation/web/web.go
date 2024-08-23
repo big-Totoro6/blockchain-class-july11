@@ -50,6 +50,7 @@ func (a *App) SignalShutdown() {
 
 // Handle sets a handler function for a given HTTP method and path pair
 // to the application server mux.
+// 不用这个了 用我新的handle的中间件去设置上下文的值
 func (a *App) Handle(method string, group string, path string, handler Handler, mw ...Middleware) {
 
 	// First wrap handler specific middleware around this handler.

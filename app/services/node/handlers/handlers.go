@@ -61,7 +61,7 @@ func PrivateMux(cfg MuxConfig) http.Handler {
 	r := gin.Default()
 
 	// Apply middleware
-	r.Use(mid.ContextMiddleware())
+	r.Use(mid.HandlerMiddleware())
 	r.Use(mid.Logger(cfg.Log))
 	r.Use(mid.Errors(cfg.Log))
 	r.Use(mid.Metrics())
