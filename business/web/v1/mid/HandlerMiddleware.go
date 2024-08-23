@@ -16,15 +16,9 @@ const key ctxKey = 1
 
 func HandlerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 从请求中提取需要的值（如从 header 中提取 TraceID）
-		traceID := c.GetHeader("X-Trace-ID")
-		if traceID == "" {
-			traceID = uuid.New().String() // 如果 header 中没有 TraceID，生成一个新的
-		}
-
 		// 创建新的 Values 实例
 		values := &web.Values{
-			TraceID: traceID,
+			TraceID: uuid.New().String(),
 			Now:     time.Now().UTC(),
 		}
 
@@ -35,7 +29,8 @@ func HandlerMiddleware() gin.HandlerFunc {
 		// 设置到 Gin 上下文中（以便后续处理中也能访问）
 		c.Set("context_values", values)
 
-		//// 调用实际的处理函数
-		//handler(c)
+		// Continue processing the request.
+		// This allows subsequent handlers to use the context values set here.
+		c.Next()
 	}
 }

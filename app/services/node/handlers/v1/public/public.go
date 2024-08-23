@@ -9,6 +9,7 @@ import (
 	"github.com/ardanlabs/blockchain/foundation/blockchain/state"
 	"github.com/ardanlabs/blockchain/foundation/nameservice"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 
 	"github.com/ardanlabs/blockchain/foundation/web"
@@ -47,9 +48,10 @@ func (h Handlers) Sample(ctx context.Context, w http.ResponseWriter, r *http.Req
 func (h Handlers) SubmitWalletTransaction(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	v, err := web.GetValues(ctx)
 	if err != nil {
+		log.Printf("Error retrieving values from context: %v", err)
 		return web.NewShutdownError("web value missing from context")
 	}
-
+	log.Printf("Retrieved values from context: %+v", v)
 	// Decode the JSON in the post call into a Signed transaction.
 	var signedTx database.SignedTx
 	if err := web.Decode(r, &signedTx); err != nil {
