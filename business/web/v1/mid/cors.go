@@ -6,6 +6,7 @@ import (
 )
 
 // Cors sets the response headers needed for Cross-Origin Resource Sharing
+// Deprecated
 func Cors(origin string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Set the CORS headers to the response.

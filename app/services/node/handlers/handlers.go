@@ -13,6 +13,7 @@ import (
 	"github.com/ardanlabs/blockchain/app/services/node/handlers/debug/checkgrp"
 	v1 "github.com/ardanlabs/blockchain/app/services/node/handlers/v1"
 	"github.com/ardanlabs/blockchain/business/web/v1/mid"
+	"github.com/gin-contrib/cors"
 	"go.uber.org/zap"
 )
 
@@ -35,9 +36,26 @@ func PublicMux(cfg MuxConfig) *gin.Engine {
 	r.Use(mid.Logger(cfg.Log))
 	r.Use(mid.Errors(cfg.Log))
 	r.Use(mid.Metrics())
-	r.Use(mid.Cors("*"))
+	//r.Use(mid.Cors("*"))
 	r.Use(mid.Panics())
 
+	//=======================跨域配置======================================================
+	// 使用 cors 中间件并配置 CORS 选项
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://example.com"}, // 允许的域
+		AllowMethods:     []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Accept", "Content-Type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization"},
+		AllowCredentials: true,
+		MaxAge:           86400, // Optional: Cache preflight responses for a day
+	}))
+
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "Hello, world!",
+		})
+	})
+
+	//=========================================================================================
 	// Handle OPTIONS requests for CORS preflight.
 	r.OPTIONS("/*path", func(c *gin.Context) {
 		c.Status(204) // Respond with 'No Content' for OPTIONS preflight requests.
