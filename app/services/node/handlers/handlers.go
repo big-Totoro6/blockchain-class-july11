@@ -27,7 +27,6 @@ type MuxConfig struct {
 
 // PublicMux constructs a gin.Engine with all application routes defined.
 func PublicMux(cfg MuxConfig) *gin.Engine {
-
 	// Create a new Gin engine
 	r := gin.Default()
 
@@ -55,7 +54,13 @@ func PublicMux(cfg MuxConfig) *gin.Engine {
 		})
 	})
 
+	//=================metrics指标访问接口=====================================================================
+	// Register the /metrics route to serve expvar metrics.
+	r.GET("/metrics", func(c *gin.Context) {
+		expvar.Handler().ServeHTTP(c.Writer, c.Request)
+	})
 	//=========================================================================================
+
 	// Handle OPTIONS requests for CORS preflight.
 	r.OPTIONS("/*path", func(c *gin.Context) {
 		c.Status(204) // Respond with 'No Content' for OPTIONS preflight requests.
